@@ -1,5 +1,6 @@
 {
   "dependencies": {
+    "bcrypt": "^6.0.0",
     "dotenv": "^17.4.1",
     "express": "^5.2.1",
     "init": "^0.1.2",
@@ -8,6 +9,7 @@
     "mongoose": "^9.4.1"
   },
   "devDependencies": {
+    "@types/bcrypt": "^6.0.0",
     "@types/express": "^5.0.6",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^25.5.2",
