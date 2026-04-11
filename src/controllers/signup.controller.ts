@@ -4,7 +4,7 @@ import { User } from '../models/user.model';
 
 export const signup = async (req: Request, res: Response) => {
   try {
-    const { userName, email, phone, location, password, userRole } = req.body;
+    const { userName, email, phone, location, password } = req.body;
 
     if (!userName || !email || !phone || !password) {
       return res.status(400).json({
@@ -37,7 +37,7 @@ export const signup = async (req: Request, res: Response) => {
       phone,
       location,
       password: hashedPassword,
-      userRole: userRole ?? 2,
+      userRole: 2,
     });
 
     const userResponse = {

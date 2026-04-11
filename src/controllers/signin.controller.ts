@@ -34,7 +34,7 @@ export const signin = async (req: Request, res: Response) => {
     }
 
     // generate tokens
-    const { accessToken, refreshToken } = generateTokens(user._id.toString());
+    const { accessToken, refreshToken } = generateTokens(user._id.toString(), user.userRole);
 
     // (optional but recommended) store refresh token in DB
     user.refreshToken = refreshToken;

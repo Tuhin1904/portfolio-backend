@@ -7,7 +7,7 @@ export interface IGuest extends Document {
   budget: string;
   message: string;
   typeOfUser: string;
-  userId: string;
+  userId?: mongoose.Types.ObjectId;
   status: string;
 }
 
@@ -35,7 +35,8 @@ const guestSchema = new Schema<IGuest>(
       required: true,
     },
     userId: {
-      type: String,
+      type: mongoose.Types.ObjectId,
+      required: false,
     },
     typeOfUser: {
       type: String,
