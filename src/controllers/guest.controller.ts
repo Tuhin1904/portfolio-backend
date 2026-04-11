@@ -14,14 +14,27 @@ export const createGuestQuery = async (req: Request, res: Response) => {
       });
     }
 
-    const guest = await Guest.create({
+    let userId = null;
+
+    // if registered → get userId from token
+    if (typeOfUser === 'registered') {
+      userId = (req as any).user?.userId;
+    }
+
+    const guestData: any = {
       name,
       email,
       workType,
       budget,
       message,
       typeOfUser,
-    });
+    };
+
+    if (userId) {
+      guestData.userId = userId;
+    }
+
+    const guest = await Guest.create(guestData);
 
     return res.status(201).json({
       success: true,

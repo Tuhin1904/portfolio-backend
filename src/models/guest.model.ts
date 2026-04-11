@@ -7,6 +7,8 @@ export interface IGuest extends Document {
   budget: string;
   message: string;
   typeOfUser: string;
+  userId: string;
+  status: string;
 }
 
 const guestSchema = new Schema<IGuest>(
@@ -32,10 +34,18 @@ const guestSchema = new Schema<IGuest>(
       type: String,
       required: true,
     },
+    userId: {
+      type: String,
+    },
     typeOfUser: {
       type: String,
       enum: ['guest', 'registered'],
       default: 'guest',
+    },
+    status: {
+      type: String,
+      enum: ['pending', 'rejected', 'working', 'cancelled', 'completed'],
+      default: 'pending',
     },
   },
   { timestamps: true },
