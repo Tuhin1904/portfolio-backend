@@ -1,6 +1,16 @@
 import { Request, Response } from 'express';
 import { Guest } from '../models/guest.model';
 
+import { Project } from '../models/project.model';
+
+const defaultMilestones = [
+  { title: 'Requirement Discussion', completed: false },
+  { title: 'Planning', completed: false },
+  { title: 'Execution', completed: false },
+  { title: 'Review', completed: false },
+  { title: 'Delivery', completed: false },
+];
+
 export const createGuestQuery = async (req: Request, res: Response) => {
   try {
     // console.log('req.body :', req);
@@ -70,7 +80,7 @@ export const getAllGuestQueries = async (req: Request, res: Response) => {
 export const updateQueryStatus = async (req: Request, res: Response) => {
   try {
     const { status } = req.body;
-    const allowedStatus = ['pending', 'rejected', 'working', 'cancelled', 'completed'];
+    const allowedStatus = ['pending', 'rejected', 'accepted', 'working', 'cancelled', 'completed'];
 
     if (!allowedStatus.includes(status)) {
       return res.status(400).json({
@@ -81,6 +91,21 @@ export const updateQueryStatus = async (req: Request, res: Response) => {
 
     // find the query first
     const query = (req as any).queryDoc;
+
+    if (status === 'working') {
+      const existingProject = await Project.findOne({ guestId: query._id });
+
+      if (!existingProject) {
+        await Project.create({
+          workType: query.workType,
+          totalBudget: query.budget,
+          userId: query.userId,
+          guestId: query._id,
+          milestones: defaultMilestones,
+          progress: 0,
+        });
+      }
+    }
 
     query.status = status;
     await query.save();
@@ -93,3 +118,18 @@ export const updateQueryStatus = async (req: Request, res: Response) => {
     res.status(500).json({ success: false, message: 'Error updating status' });
   }
 };
+
+// const validTransitions: Record<string, string[]> = {
+//   pending: ['accepted', 'rejected'],
+//   accepted: ['working', 'cancelled'],
+//   working: ['completed', 'cancelled'],
+// };
+
+// if (
+//   validTransitions[query.status] && !validTransitions[query.status].includes(status)
+// ) {
+//   return res.status(400).json({
+//     success: false,
+//     message: `Invalid status transition from ${query.status} to ${status}`,
+//   });
+// }

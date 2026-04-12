@@ -46,7 +46,7 @@ const guestSchema = new Schema<IGuest>(
     },
     status: {
       type: String,
-      enum: ['pending', 'rejected', 'working', 'cancelled', 'completed'],
+      enum: ['pending', 'rejected', 'accepted', 'working', 'cancelled', 'completed'],
       default: 'pending',
     },
   },
