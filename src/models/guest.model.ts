@@ -36,6 +36,7 @@ const guestSchema = new Schema<IGuest>(
     },
     userId: {
       type: mongoose.Types.ObjectId,
+      ref: 'User',
       required: false,
     },
     typeOfUser: {

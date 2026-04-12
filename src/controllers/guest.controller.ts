@@ -69,7 +69,6 @@ export const getAllGuestQueries = async (req: Request, res: Response) => {
 
 export const updateQueryStatus = async (req: Request, res: Response) => {
   try {
-    const { id } = req.params;
     const { status } = req.body;
     const allowedStatus = ['pending', 'rejected', 'working', 'cancelled', 'completed'];
 
@@ -80,47 +79,16 @@ export const updateQueryStatus = async (req: Request, res: Response) => {
       });
     }
 
-    // get logged-in user
-    const user = (req as any).user;
-
     // find the query first
-    const query = await Guest.findById(id);
+    const query = (req as any).queryDoc;
 
-    if (!query) {
-      return res.status(404).json({
-        success: false,
-        message: 'Query not found',
-      });
-    }
+    query.status = status;
+    await query.save();
 
-    const isAdmin = user.userRole === 1;
-    const isOwner = query.userId?.toString() === user.userId;
-
-    if (!isAdmin && !isOwner) {
-      return res.status(403).json({
-        success: false,
-        message: 'Not authorized to update this request status',
-      });
-    }
-
-    const updated = await Guest.findByIdAndUpdate(id, { status }, { new: true });
-
-    // query.status = status;
-    // await query.save();
-
-    // return res.json({
-    //   success: true,
-    //   data: query,
-    // });
-
-    if (!updated) {
-      return res.status(404).json({
-        success: false,
-        message: 'Wrong project selected!',
-      });
-    }
-
-    res.json({ success: true, data: updated });
+    return res.json({
+      success: true,
+      data: query,
+    });
   } catch (error) {
     res.status(500).json({ success: false, message: 'Error updating status' });
   }
