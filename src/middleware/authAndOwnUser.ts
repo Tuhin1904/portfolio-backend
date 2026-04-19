@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
+import { User } from '../models/user.model';
 
 interface AuthRequest extends Request {
   user?: {
@@ -9,7 +10,7 @@ interface AuthRequest extends Request {
   };
 }
 
-export const authAndOwnUser = (req: AuthRequest, res: Response, next: NextFunction) => {
+export const authAndOwnUser = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const authHeader = req.headers.authorization;
 
@@ -26,20 +27,13 @@ export const authAndOwnUser = (req: AuthRequest, res: Response, next: NextFuncti
       return res.status(401).json({ message: 'Invalid token type' });
     }
 
+    const user = await User.findById(decoded.userId).select('-password');
+
+    if (!user) {
+      return res.status(401).json({ message: 'User not found' });
+    }
+
     req.user = decoded;
-
-    const requestedUserId = req.params.id || req.body.userId;
-
-    if (!requestedUserId) {
-      return res.status(400).json({ message: 'User ID missing in request' });
-    }
-
-    // Ownership check
-    if (requestedUserId !== decoded?.userId) {
-      return res.status(403).json({
-        message: 'You are not allowed to modify this user',
-      });
-    }
 
     next();
   } catch (error) {

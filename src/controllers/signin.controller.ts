@@ -16,7 +16,7 @@ export const signin = async (req: Request, res: Response) => {
     }
 
     // check user
-    const user = await User.findOne({ email });
+    const user: any = await User.findOne({ email });
     if (!user) {
       return res.status(400).json({
         success: false,
@@ -50,6 +50,7 @@ export const signin = async (req: Request, res: Response) => {
           _id: user._id,
           name: user.userName,
           email: user.email,
+          profilePicUrl: user?.profilePicUrl || '',
         },
       },
     });
