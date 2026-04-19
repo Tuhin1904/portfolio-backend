@@ -1,12 +1,12 @@
 import { Request, Response, NextFunction } from 'express';
-import { Guest } from '../models/guest.model';
+import { ProjectQuery } from '../models/projectQuery.model';
 
 export const canUpdateQuery = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const user = (req as any).user;
     const { id } = req.params;
 
-    const query = await Guest.findById(id);
+    const query = await ProjectQuery.findById(id);
 
     if (!query) {
       return res.status(404).json({ success: false, message: 'Query not found' });

@@ -29,7 +29,11 @@ const userSchema = new mongoose.Schema(
       type: Number,
       required: true,
     },
-    refreshToken: { type: String },
+    profilePicUrl: {
+      type: String,
+      default: '',
+    },
+    // refreshToken: { type: String },
   },
   { timestamps: true },
 );

@@ -1,11 +1,11 @@
 import { Request, Response } from 'express';
-import { Guest } from '../models/guest.model';
+import { ProjectQuery } from '../models/projectQuery.model';
 
 export const getMyQueries = async (req: Request, res: Response) => {
   try {
     const user = (req as any).user;
 
-    const queries = await Guest.find({
+    const queries = await ProjectQuery.find({
       userId: user.userId,
     }).sort({ createdAt: -1 });
 

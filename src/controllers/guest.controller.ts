@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { Guest } from '../models/guest.model';
+import { ProjectQuery } from '../models/projectQuery.model';
 
 import { Project } from '../models/project.model';
 
@@ -44,7 +44,7 @@ export const createGuestQuery = async (req: Request, res: Response) => {
       guestData.userId = userId;
     }
 
-    const guest = await Guest.create(guestData);
+    const guest = await ProjectQuery.create(guestData);
 
     return res.status(201).json({
       success: true,
@@ -62,7 +62,7 @@ export const createGuestQuery = async (req: Request, res: Response) => {
 
 export const getAllGuestQueries = async (req: Request, res: Response) => {
   try {
-    const queries = await Guest.find().sort({ createdAt: -1 });
+    const queries = await ProjectQuery.find().sort({ createdAt: -1 });
 
     return res.status(200).json({
       success: true,

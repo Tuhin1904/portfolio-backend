@@ -53,4 +53,4 @@ const guestSchema = new Schema<IGuest>(
   { timestamps: true },
 );
 
-export const Guest = mongoose.model<IGuest>('Guest', guestSchema);
+export const ProjectQuery = mongoose.model<IGuest>('ProjectQuery', guestSchema);
