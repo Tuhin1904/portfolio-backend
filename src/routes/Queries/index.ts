@@ -7,8 +7,8 @@ import getMyQueries from './myQueries.routes';
 const router = Router();
 
 router.use('/queries', create);
+router.use('/queries/my', getMyQueries);
 router.use('/queries', getQueries);
 router.use('/queries', updateQueries);
-router.use('/queries', getMyQueries);
 
 export default router;

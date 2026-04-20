@@ -51,6 +51,7 @@ export const signin = async (req: Request, res: Response) => {
           name: user.userName,
           email: user.email,
           profilePicUrl: user?.profilePicUrl || '',
+          userRole: user?.userRole || '',
         },
       },
     });

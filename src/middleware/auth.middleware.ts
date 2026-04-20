@@ -6,9 +6,13 @@ export const protect = (req: Request, res: Response, next: NextFunction) => {
     const authHeader = req.headers.authorization;
 
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      (req as any).user = null;
-      (req as any).isGuest = true;
-      return next();
+      // (req as any).user = null;
+      // (req as any).isGuest = true;
+      // return next();
+      return res.status(401).json({
+        success: false,
+        message: 'Not authorized',
+      });
     }
 
     const token = authHeader.split(' ')[1];
@@ -16,7 +20,7 @@ export const protect = (req: Request, res: Response, next: NextFunction) => {
     const decoded = jwt.verify(token, process.env.JWT_SECRET as string) as { userId: string };
 
     (req as any).user = decoded;
-    (req as any).isGuest = false;
+    // (req as any).isGuest = false;
 
     next();
   } catch (error) {
