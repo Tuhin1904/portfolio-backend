@@ -30,9 +30,7 @@ export const getQueryById = async (req: Request, res: Response) => {
       });
     }
 
-    res.status(200).json(query);
-
-    return res.json({
+    return res.status(200).json({
       success: true,
       data: query,
     });

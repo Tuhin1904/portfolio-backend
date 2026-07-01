@@ -62,11 +62,28 @@ export const createGuestQuery = async (req: Request, res: Response) => {
 
 export const getAllGuestQueries = async (req: Request, res: Response) => {
   try {
-    const queries = await ProjectQuery.find().sort({ createdAt: -1 });
+    const page = Math.max(1, parseInt(req.query.page as string) || 1);
+    const pageSize = Math.min(50, Math.max(1, parseInt(req.query.pageSize as string) || 10));
+    const skip = (page - 1) * pageSize;
+
+    const [queries, totalCount] = await Promise.all([
+      ProjectQuery.find().sort({ createdAt: -1 }).skip(skip).limit(pageSize),
+      ProjectQuery.countDocuments(),
+    ]);
+
+    const totalPages = Math.ceil(totalCount / pageSize);
 
     return res.status(200).json({
       success: true,
       data: queries,
+      pagination: {
+        currentPage: page,
+        pageSize,
+        totalCount,
+        totalPages,
+        hasNextPage: page < totalPages,
+        hasPrevPage: page > 1,
+      },
     });
   } catch (error) {
     console.log('Error :', error);

@@ -1,17 +1,21 @@
 import { Router } from 'express';
 import signin from './signInUser.route';
 import createUser from './createUser.route';
-import updateUser from './updateUser.route'
+import updateUser from './updateUser.route';
+import refreshToken from './refreshToken.route';
 
 const router = Router();
 
-// api/users/create
+// api/users/signup
 router.use('/signup', createUser);
 
-// api/users/register
+// api/users/signin
 router.use('/signin', signin);
 
-// profile update
-router.use('/update-profile',updateUser );
+// api/users/update-profile
+router.use('/update-profile', updateUser);
+
+// api/users/refresh-token
+router.use('/refresh-token', refreshToken);
 
 export default router;

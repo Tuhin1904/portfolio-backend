@@ -1,0 +1,485 @@
+{
+  "info": {
+    "name": "Portfolio Backend API",
+    "_postman_id": "portfolio-backend-collection",
+    "description": "Complete API collection for my-portfolio-back. \n\nSetup:\n1. Set `baseUrl` variable to your server URL (default: http://localhost:8080/api)\n2. After signing in, copy `accessToken` and `refreshToken` from the response and set them as collection variables.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8080/api", "type": "string" },
+    { "key": "accessToken", "value": "", "type": "string" },
+    { "key": "refreshToken", "value": "", "type": "string" },
+    { "key": "queryId", "value": "", "type": "string" },
+    { "key": "chatRequestId", "value": "", "type": "string" },
+    { "key": "conversationId", "value": "", "type": "string" }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }]
+  },
+  "item": [
+    {
+      "name": "🏓 Health",
+      "item": [
+        {
+          "name": "Ping",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/ping",
+              "host": ["{{baseUrl}}"],
+              "path": ["ping"]
+            },
+            "description": "Health check. Returns server status and timestamp."
+          }
+        }
+      ]
+    },
+    {
+      "name": "👤 Users",
+      "item": [
+        {
+          "name": "Sign Up",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userName\": \"Tuhin Ghosh\",\n  \"email\": \"tuhin@example.com\",\n  \"phone\": \"9999999999\",\n  \"password\": \"password123\",\n  \"location\": \"Kolkata, India\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/users/signup",
+              "host": ["{{baseUrl}}"],
+              "path": ["users", "signup"]
+            },
+            "description": "Register a new user. userRole is automatically set to 2 (regular user)."
+          }
+        },
+        {
+          "name": "Sign In",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.success) {",
+                  "  pm.collectionVariables.set('accessToken', res.data.accessToken);",
+                  "  pm.collectionVariables.set('refreshToken', res.data.refreshToken);",
+                  "  console.log('Tokens saved to collection variables.');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"tuhin@example.com\",\n  \"password\": \"password123\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/users/signin",
+              "host": ["{{baseUrl}}"],
+              "path": ["users", "signin"]
+            },
+            "description": "Login. The test script automatically saves accessToken and refreshToken to collection variables."
+          }
+        },
+        {
+          "name": "Refresh Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.success) {",
+                  "  pm.collectionVariables.set('accessToken', res.data.accessToken);",
+                  "  pm.collectionVariables.set('refreshToken', res.data.refreshToken);",
+                  "  console.log('Tokens rotated and saved.');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/users/refresh-token",
+              "host": ["{{baseUrl}}"],
+              "path": ["users", "refresh-token"]
+            },
+            "description": "Exchange a valid refresh token for a new access + refresh token pair. Old refresh token is immediately invalidated."
+          }
+        },
+        {
+          "name": "Update Profile",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userName\": \"Tuhin Ghosh Updated\",\n  \"phone\": \"8888888888\",\n  \"location\": \"Mumbai, India\",\n  \"profilePicUrl\": \"https://example.com/pic.jpg\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/users/update-profile",
+              "host": ["{{baseUrl}}"],
+              "path": ["users", "update-profile"]
+            },
+            "description": "Update own profile. Cannot update email, password, or userRole."
+          }
+        }
+      ]
+    },
+    {
+      "name": "📋 Project Queries",
+      "item": [
+        {
+          "name": "Submit Query (Guest)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"John Doe\",\n  \"email\": \"john@example.com\",\n  \"workType\": \"Portfolio Website\",\n  \"budget\": \"$500\",\n  \"message\": \"I need a modern portfolio website built with React.\",\n  \"typeOfUser\": \"guest\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/project/queries",
+              "host": ["{{baseUrl}}"],
+              "path": ["project", "queries"]
+            },
+            "description": "Submit a project query as a guest (no auth required)."
+          }
+        },
+        {
+          "name": "Submit Query (Registered User)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Tuhin Ghosh\",\n  \"email\": \"tuhin@example.com\",\n  \"workType\": \"E-Commerce App\",\n  \"budget\": \"$1200\",\n  \"message\": \"I want a full-stack e-commerce application.\",\n  \"typeOfUser\": \"registered\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/project/queries",
+              "host": ["{{baseUrl}}"],
+              "path": ["project", "queries"]
+            },
+            "description": "Submit a query as a registered user. Requires Bearer token. Links query to your user account."
+          }
+        },
+        {
+          "name": "Get All Queries [Admin]",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/project/queries?page=1&pageSize=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["project", "queries"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "pageSize", "value": "10" }
+              ]
+            },
+            "description": "Admin only. Returns paginated list of all project queries with pagination metadata."
+          }
+        },
+        {
+          "name": "Get Query By ID [Admin]",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/project/queries/{{queryId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["project", "queries", "{{queryId}}"]
+            },
+            "description": "Admin only. Get details of a specific query by its MongoDB ID."
+          }
+        },
+        {
+          "name": "Get My Queries",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/project/queries/my",
+              "host": ["{{baseUrl}}"],
+              "path": ["project", "queries", "my"]
+            },
+            "description": "Authenticated user. Returns all queries submitted by the logged-in user."
+          }
+        },
+        {
+          "name": "Get My Query By ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/project/queries/my/{{queryId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["project", "queries", "my", "{{queryId}}"]
+            },
+            "description": "Authenticated user. Get a specific query owned by the current user."
+          }
+        },
+        {
+          "name": "Update Query Status",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"accepted\",\n  \"typeOfUser\": \"registered\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/project/queries/{{queryId}}/status",
+              "host": ["{{baseUrl}}"],
+              "path": ["project", "queries", "{{queryId}}", "status"]
+            },
+            "description": "Update the status of a project query.\n\nValid status values:\n- pending\n- accepted\n- rejected\n- working (auto-creates a Project with default milestones)\n- cancelled\n- completed"
+          }
+        }
+      ]
+    },
+    {
+      "name": "💬 Chat",
+      "item": [
+        {
+          "name": "Requests",
+          "item": [
+            {
+              "name": "Send Chat Request",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/chat/request",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["chat", "request"]
+                },
+                "description": "Registered user sends a chat request to the admin. Prevents duplicates — will return 409 if a pending or accepted request already exists."
+              }
+            },
+            {
+              "name": "Respond to Chat Request [Admin]",
+              "request": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"action\": \"accept\"\n}",
+                  "options": { "raw": { "language": "json" } }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/chat/request/{{chatRequestId}}/respond",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["chat", "request", "{{chatRequestId}}", "respond"]
+                },
+                "description": "Admin accepts or rejects a chat request.\n\naction: \"accept\" → creates a Conversation document\naction: \"reject\" → marks request as rejected"
+              }
+            },
+            {
+              "name": "Get Pending Requests [Admin]",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/chat/requests/pending",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["chat", "requests", "pending"]
+                },
+                "description": "Admin only. Returns all pending incoming chat requests with sender details populated."
+              }
+            },
+            {
+              "name": "Get My Requests",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/chat/requests/my",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["chat", "requests", "my"]
+                },
+                "description": "Registered user. Returns all chat requests sent by the current user."
+              }
+            }
+          ]
+        },
+        {
+          "name": "Conversations",
+          "item": [
+            {
+              "name": "Get My Conversations",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/chat/conversations",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["chat", "conversations"]
+                },
+                "description": "Returns all conversations for the logged-in user (works for both admin and regular user). Sorted by most recent message."
+              }
+            },
+            {
+              "name": "Get Conversation Messages",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/chat/conversations/{{conversationId}}/messages?page=1&pageSize=30",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["chat", "conversations", "{{conversationId}}", "messages"],
+                  "query": [
+                    { "key": "page", "value": "1" },
+                    { "key": "pageSize", "value": "30" }
+                  ]
+                },
+                "description": "Paginated message history for a conversation. Returns messages in chronological order (oldest first). Only participants can access."
+              }
+            },
+            {
+              "name": "Mark Messages As Read",
+              "request": {
+                "method": "PATCH",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/chat/conversations/{{conversationId}}/read",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["chat", "conversations", "{{conversationId}}", "read"]
+                },
+                "description": "Mark all unread messages in a conversation as read by the current user. Also emits a 'message_read' event via Socket.IO to notify the other party."
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "⭐ Reviews",
+      "item": [
+        {
+          "name": "Submit Review",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"queryId\": \"{{queryId}}\",\n  \"rating\": 5,\n  \"comment\": \"Excellent work! Delivered on time and exceeded expectations.\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/reviews",
+              "host": ["{{baseUrl}}"],
+              "path": ["reviews"]
+            },
+            "description": "Submit a review for a completed project.\n\nGuards (checked in order):\n1. queryId is provided\n2. rating is between 1 and 5\n3. Project query exists\n4. Caller is the owner of the query\n5. Query status is 'completed'\n6. No existing review for this query (one review per project)"
+          }
+        },
+        {
+          "name": "Get All Reviews (Public)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/reviews?page=1&pageSize=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["reviews"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "pageSize", "value": "10" }
+              ]
+            },
+            "description": "Public endpoint — no auth required. Returns paginated reviews along with a full rating summary (average, total count, star breakdown). Use this for your portfolio display page."
+          }
+        },
+        {
+          "name": "Get Review By Query ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/reviews/query/{{queryId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["reviews", "query", "{{queryId}}"]
+            },
+            "description": "Get the review submitted for a specific project query. Only the query owner or admin can access."
+          }
+        }
+      ]
+    },
+    {
+      "name": "📊 Dashboard",
+      "item": [
+        {
+          "name": "Get Dashboard Stats [Admin]",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/dashboard/stats",
+              "host": ["{{baseUrl}}"],
+              "path": ["dashboard", "stats"]
+            },
+            "description": "Admin only. Returns aggregated stats in a single request:\n- Total query count + breakdown by status\n- Guest vs registered query counts + ratio (%)\n- Total registered users + new users (last 7 and 30 days)\n- Chat request breakdown by status\n\nAll DB queries run in parallel (Promise.all)."
+          }
+        }
+      ]
+    },
+    {
+      "name": "📁 File Upload",
+      "item": [
+        {
+          "name": "Upload Image to R2",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "image",
+                  "type": "file",
+                  "src": "",
+                  "description": "Select an image file to upload"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/file/upload",
+              "host": ["{{baseUrl}}"],
+              "path": ["file", "upload"]
+            },
+            "description": "Upload an image to Cloudflare R2. Returns a public URL.\n\nForm field name must be 'image'.\nReturns: { success: true, url: \"https://...\" }"
+          }
+        }
+      ]
+    }
+  ]
+}
