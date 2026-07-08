@@ -1,7 +1,6 @@
 import { Request, Response } from 'express';
 import { ProjectQuery } from '../models/projectQuery.model';
 import { User } from '../models/user.model';
-import { ChatRequest } from '../models/chatRequest.model';
 
 export const getDashboardStats = async (req: Request, res: Response) => {
   try {
@@ -20,9 +19,6 @@ export const getDashboardStats = async (req: Request, res: Response) => {
       totalUserCount,
       newUsersLast7Days,
       newUsersLast30Days,
-
-      // ── Chat Requests ──────────────────────────────────────────────────
-      chatRequestStatusBreakdown,
     ] = await Promise.all([
       // Total queries (all types)
       ProjectQuery.countDocuments(),
@@ -57,16 +53,6 @@ export const getDashboardStats = async (req: Request, res: Response) => {
         userRole: 2,
         createdAt: { $gte: last30Days },
       }),
-
-      // Chat request counts by status
-      ChatRequest.aggregate([
-        {
-          $group: {
-            _id: '$status',
-            count: { $sum: 1 },
-          },
-        },
-      ]),
     ]);
 
     // ── Format query status into a clean object ─────────────────────────
@@ -80,16 +66,6 @@ export const getDashboardStats = async (req: Request, res: Response) => {
     };
     queryStatusBreakdown.forEach((item: { _id: string; count: number }) => {
       if (item._id) queryByStatus[item._id] = item.count;
-    });
-
-    // ── Format chat request status ──────────────────────────────────────
-    const chatRequestByStatus: Record<string, number> = {
-      pending: 0,
-      accepted: 0,
-      rejected: 0,
-    };
-    chatRequestStatusBreakdown.forEach((item: { _id: string; count: number }) => {
-      if (item._id) chatRequestByStatus[item._id] = item.count;
     });
 
     // ── Guest vs Registered ratio ───────────────────────────────────────
@@ -116,13 +92,6 @@ export const getDashboardStats = async (req: Request, res: Response) => {
           newLast7Days: newUsersLast7Days,
           newLast30Days: newUsersLast30Days,
         },
-        chatRequests: {
-          byStatus: chatRequestByStatus,
-          total:
-            chatRequestByStatus.pending +
-            chatRequestByStatus.accepted +
-            chatRequestByStatus.rejected,
-        },
       },
     });
   } catch (error) {
@@ -130,3 +99,4 @@ export const getDashboardStats = async (req: Request, res: Response) => {
     return res.status(500).json({ success: false, message: 'Server error' });
   }
 };
+
