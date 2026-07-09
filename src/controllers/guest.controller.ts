@@ -1,7 +1,8 @@
 import { Request, Response } from 'express';
 import { ProjectQuery } from '../models/projectQuery.model';
-
 import { Project } from '../models/project.model';
+import { User } from '../models/user.model';
+import { sendPushNotification, storeNotificationInFirestore } from '../utils/firebase';
 
 const defaultMilestones = [
   { title: 'Requirement Discussion', completed: false },
@@ -45,6 +46,46 @@ export const createGuestQuery = async (req: Request, res: Response) => {
     }
 
     const guest = await ProjectQuery.create(guestData);
+
+    // Trigger Firebase Push Notification and Firestore entry for registered user queries
+    if (typeOfUser === 'registered') {
+      try {
+        const admins = await User.find({ userRole: 1 });
+        for (const adminUser of admins) {
+          // Store notification history in Firestore
+          storeNotificationInFirestore({
+            title: `New Query from ${name}`,
+            body: message,
+            recipientId: adminUser._id.toString(),
+            queryId: guest._id.toString(),
+            senderName: name,
+            senderEmail: email,
+            workType,
+            budget,
+          }).catch((err) => {
+            console.error('Error saving notification in Firestore:', err);
+          });
+
+          // Send push notification if token is available
+          if (adminUser.fcmToken) {
+            sendPushNotification(
+              adminUser.fcmToken,
+              `New Query from ${name}`,
+              message,
+              {
+                queryId: guest._id.toString(),
+                status: guest.status || 'pending',
+                workType,
+              }
+            ).catch((err) => {
+              console.error(`Error sending notification to admin ${adminUser._id}:`, err);
+            });
+          }
+        }
+      } catch (err) {
+        console.error('Error handling admin notification:', err);
+      }
+    }
 
     return res.status(201).json({
       success: true,
@@ -97,7 +138,7 @@ export const getAllGuestQueries = async (req: Request, res: Response) => {
 export const updateQueryStatus = async (req: Request, res: Response) => {
   try {
     const { status } = req.body;
-    const allowedStatus = ['pending', 'rejected', 'accepted', 'working', 'cancelled', 'completed'];
+    const allowedStatus = ['pending', 'rejected', 'accepted', 'working', 'cancelled', 'completed', 'accepted_by_client', 'delivered'];
 
     if (!allowedStatus.includes(status)) {
       return res.status(400).json({
@@ -106,8 +147,26 @@ export const updateQueryStatus = async (req: Request, res: Response) => {
       });
     }
 
-    // find the query first
     const query = (req as any).queryDoc;
+    const user = (req as any).user;
+    const isAdmin = user?.userRole === 1;
+    const isOwner = query.userId?.toString() === user?.userId;
+
+    const adminOnlyStatuses = ['accepted', 'working', 'completed', 'rejected', 'pending'];
+    if (adminOnlyStatuses.includes(status) && !isAdmin) {
+      return res.status(403).json({
+        success: false,
+        message: `Only the administrator can set the status to "${status}".`,
+      });
+    }
+
+    const clientOnlyStatuses = ['accepted_by_client', 'delivered'];
+    if (clientOnlyStatuses.includes(status) && !isOwner) {
+      return res.status(403).json({
+        success: false,
+        message: `Only the client who created this query can set the status to "${status}".`,
+      });
+    }
 
     if (status === 'working') {
       const existingProject = await Project.findOne({ guestId: query._id });
@@ -124,8 +183,48 @@ export const updateQueryStatus = async (req: Request, res: Response) => {
       }
     }
 
+    const oldStatus = query.status;
     query.status = status;
     await query.save();
+
+    // Trigger notification if status changes
+    if (oldStatus !== status) {
+      if (isAdmin) {
+        // Updated by Admin -> Notify Client
+        if (query.userId) {
+          const recipientUser = await User.findById(query.userId);
+          if (recipientUser) {
+            const title = `Project Status Updated!`;
+            const body = `Your project inquiry "${query.workType}" status has been updated to "${status}".`;
+
+            if (recipientUser.fcmToken) {
+              await sendPushNotification(recipientUser.fcmToken, title, body);
+            }
+            await storeNotificationInFirestore({
+              recipientId: recipientUser._id.toString(),
+              title,
+              body,
+            });
+          }
+        }
+      } else if (isOwner) {
+        // Updated by Client -> Notify all Admin users
+        const admins = await User.find({ userRole: 1 });
+        const title = `Project Status Updated by Client!`;
+        const body = `Client ${user?.name || 'User'} has updated status of "${query.workType}" to "${status}".`;
+
+        for (const admin of admins) {
+          if (admin.fcmToken) {
+            await sendPushNotification(admin.fcmToken, title, body);
+          }
+          await storeNotificationInFirestore({
+            recipientId: admin._id.toString(),
+            title,
+            body,
+          });
+        }
+      }
+    }
 
     return res.json({
       success: true,

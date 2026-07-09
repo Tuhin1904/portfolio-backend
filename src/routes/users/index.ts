@@ -3,6 +3,7 @@ import signin from './signInUser.route';
 import createUser from './createUser.route';
 import updateUser from './updateUser.route';
 import refreshToken from './refreshToken.route';
+import updateFcmToken from './updateFcmToken.route';
 
 const router = Router();
 
@@ -17,5 +18,8 @@ router.use('/update-profile', updateUser);
 
 // api/users/refresh-token
 router.use('/refresh-token', refreshToken);
+
+// api/users/fcm-token
+router.use('/fcm-token', updateFcmToken);
 
 export default router;

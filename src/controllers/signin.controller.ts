@@ -5,7 +5,7 @@ import { generateTokens } from '../utils/generateToken';
 
 export const signin = async (req: Request, res: Response) => {
   try {
-    const { email, password } = req.body;
+    const { email, password, fcmToken } = req.body;
 
     // validation
     if (!email || !password) {
@@ -38,6 +38,9 @@ export const signin = async (req: Request, res: Response) => {
 
     // (optional but recommended) store refresh token in DB
     user.refreshToken = refreshToken;
+    if (fcmToken) {
+      user.fcmToken = fcmToken;
+    }
     await user.save();
 
     return res.status(200).json({

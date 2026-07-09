@@ -4,7 +4,7 @@ import { User } from '../models/user.model';
 
 export const signup = async (req: Request, res: Response) => {
   try {
-    const { userName, email, phone, location, password } = req.body;
+    const { userName, email, phone, location, password, fcmToken } = req.body;
 
     if (!userName || !email || !phone || !password) {
       return res.status(400).json({
@@ -38,6 +38,7 @@ export const signup = async (req: Request, res: Response) => {
       location,
       password: hashedPassword,
       userRole: 2,
+      fcmToken: fcmToken || '',
     });
 
     const userResponse = {

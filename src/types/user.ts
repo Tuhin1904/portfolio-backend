@@ -9,4 +9,5 @@ export interface IUser extends Document {
   userRole: number;
   profilePicUrl?: string;
   refreshToken?: string;
+  fcmToken?: string;
 }

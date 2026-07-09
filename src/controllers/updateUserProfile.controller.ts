@@ -5,7 +5,7 @@ export const updateUserProfile = async (req: Request, res: Response) => {
   try {
     const userId = (req as any).user.userId;
 
-    const allowedFields = ['userName', 'phone', 'location', 'profilePicUrl'];
+    const allowedFields = ['userName', 'phone', 'location', 'profilePicUrl', 'fcmToken'];
 
     const updates: any = {};
 
