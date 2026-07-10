@@ -3,7 +3,6 @@ import { Request, Response, NextFunction } from 'express';
 export const isAdmin = (req: Request, res: Response, next: NextFunction) => {
   try {
     const user = (req as any).user;
-    console.log('user.userRole is :', user);
 
     if (!user) {
       return res.status(401).json({

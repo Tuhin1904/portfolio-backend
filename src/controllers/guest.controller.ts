@@ -30,6 +30,21 @@ export const createGuestQuery = async (req: Request, res: Response) => {
     // if registered → get userId from token
     if (typeOfUser === 'registered') {
       userId = (req as any).user?.userId;
+
+      if (userId) {
+        // Limit of max 3 active (incomplete) query requests
+        const activeCount = await ProjectQuery.countDocuments({
+          userId: userId,
+          status: { $nin: ['completed', 'rejected', 'cancelled'] },
+        });
+
+        if (activeCount >= 3) {
+          return res.status(400).json({
+            success: false,
+            message: 'You already have 3 active project requests. Please wait until at least one of them is completed or resolved.',
+          });
+        }
+      }
     }
 
     const guestData: any = {
@@ -106,10 +121,25 @@ export const getAllGuestQueries = async (req: Request, res: Response) => {
     const page = Math.max(1, parseInt(req.query.page as string) || 1);
     const pageSize = Math.min(50, Math.max(1, parseInt(req.query.pageSize as string) || 10));
     const skip = (page - 1) * pageSize;
+    const { search } = req.query;
+
+    const filter: any = {};
+
+    if (search) {
+      const escapedSearch = (search as string).replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+      const searchRegex = new RegExp(escapedSearch, 'i');
+      filter.$or = [
+        { name: searchRegex },
+        { email: searchRegex },
+        { message: searchRegex },
+        { workType: searchRegex },
+        { status: searchRegex },
+      ];
+    }
 
     const [queries, totalCount] = await Promise.all([
-      ProjectQuery.find().sort({ createdAt: -1 }).skip(skip).limit(pageSize),
-      ProjectQuery.countDocuments(),
+      ProjectQuery.find(filter).sort({ createdAt: -1 }).skip(skip).limit(pageSize),
+      ProjectQuery.countDocuments(filter),
     ]);
 
     const totalPages = Math.ceil(totalCount / pageSize);
