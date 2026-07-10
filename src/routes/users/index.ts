@@ -4,11 +4,27 @@ import createUser from './createUser.route';
 import updateUser from './updateUser.route';
 import refreshToken from './refreshToken.route';
 import updateFcmToken from './updateFcmToken.route';
+import verifyOtp from './verifyOtp.route';
+import resendOtp from './resendOtp.route';
+import forgotPassword from './forgotPassword.route';
+import resetPassword from './resetPassword.route';
 
 const router = Router();
 
 // api/users/signup
 router.use('/signup', createUser);
+
+// api/users/verify-otp
+router.use('/verify-otp', verifyOtp);
+
+// api/users/resend-otp
+router.use('/resend-otp', resendOtp);
+
+// api/users/forgot-password
+router.use('/forgot-password', forgotPassword);
+
+// api/users/reset-password
+router.use('/reset-password', resetPassword);
 
 // api/users/signin
 router.use('/signin', signin);

@@ -16,7 +16,7 @@ export const signin = async (req: Request, res: Response) => {
     }
 
     // check user
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ email: email.toLowerCase().trim() });
     if (!user) {
       return res.status(400).json({
         success: false,
@@ -30,6 +30,14 @@ export const signin = async (req: Request, res: Response) => {
       return res.status(400).json({
         success: false,
         message: 'Invalid email or password',
+      });
+    }
+
+    // check if user is verified
+    if (!user.isVerified) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please verify your email before signing in.',
       });
     }
 

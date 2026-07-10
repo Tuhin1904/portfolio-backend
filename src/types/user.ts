@@ -10,4 +10,9 @@ export interface IUser extends Document {
   profilePicUrl?: string;
   refreshToken?: string;
   fcmToken?: string;
+  isVerified?: boolean;
+  otp?: string;
+  otpExpires?: Date;
+  resetPasswordOtp?: string;
+  resetPasswordOtpExpires?: Date;
 }

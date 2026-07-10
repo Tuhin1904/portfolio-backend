@@ -3,6 +3,7 @@ import { ProjectQuery } from '../models/projectQuery.model';
 import { Project } from '../models/project.model';
 import { User } from '../models/user.model';
 import { sendPushNotification, storeNotificationInFirestore } from '../utils/firebase';
+import { sendQueryStatusEmail } from '../utils/email';
 
 const defaultMilestones = [
   { title: 'Requirement Discussion', completed: false },
@@ -235,6 +236,17 @@ export const updateQueryStatus = async (req: Request, res: Response) => {
               title,
               body,
             });
+
+            // Send email to client
+            sendQueryStatusEmail(
+              recipientUser.email,
+              recipientUser.userName,
+              query.workType,
+              status,
+              oldStatus
+            ).catch((emailError) => {
+              console.error('Error sending query status email to client in background:', emailError);
+            });
           }
         }
       } else if (isOwner) {
@@ -251,6 +263,17 @@ export const updateQueryStatus = async (req: Request, res: Response) => {
             recipientId: admin._id.toString(),
             title,
             body,
+          });
+
+          // Send email to admin
+          sendQueryStatusEmail(
+            admin.email,
+            admin.userName,
+            query.workType,
+            status,
+            oldStatus
+          ).catch((emailError) => {
+            console.error(`Error sending query status email to admin (${admin.email}) in background:`, emailError);
           });
         }
       }
