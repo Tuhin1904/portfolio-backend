@@ -19,6 +19,9 @@ export const getDashboardStats = async (req: Request, res: Response) => {
       totalUserCount,
       newUsersLast7Days,
       newUsersLast30Days,
+
+      // ── Timeline (queries per day for last 30 days) ────────────────────
+      queryTimeline,
     ] = await Promise.all([
       // Total queries (all types)
       ProjectQuery.countDocuments(),
@@ -53,6 +56,24 @@ export const getDashboardStats = async (req: Request, res: Response) => {
         userRole: 2,
         createdAt: { $gte: last30Days },
       }),
+
+      // Queries grouped by day for last 30 days (for trend charts)
+      ProjectQuery.aggregate([
+        {
+          $match: {
+            createdAt: { $gte: last30Days },
+          },
+        },
+        {
+          $group: {
+            _id: {
+              $dateToString: { format: '%Y-%m-%d', date: '$createdAt' },
+            },
+            count: { $sum: 1 },
+          },
+        },
+        { $sort: { _id: 1 } },
+      ]),
     ]);
 
     // ── Format query status into a clean object ─────────────────────────
@@ -63,10 +84,20 @@ export const getDashboardStats = async (req: Request, res: Response) => {
       working: 0,
       cancelled: 0,
       completed: 0,
+      accepted_by_client: 0,
+      delivered: 0,
     };
     queryStatusBreakdown.forEach((item: { _id: string; count: number }) => {
       if (item._id) queryByStatus[item._id] = item.count;
     });
+
+    // ── Derived grouped counts ──────────────────────────────────────────
+    // "Undergoing" = queries actively being worked on
+    const undergingStatuses = ['accepted', 'working', 'accepted_by_client', 'delivered'];
+    const undergoingCount = undergingStatuses.reduce((sum, s) => sum + (queryByStatus[s] || 0), 0);
+
+    // "Closed" = cancelled or rejected
+    const closedCount = (queryByStatus['cancelled'] || 0) + (queryByStatus['rejected'] || 0);
 
     // ── Guest vs Registered ratio ───────────────────────────────────────
     const totalQueries = guestQueryCount + registeredQueryCount;
@@ -82,10 +113,16 @@ export const getDashboardStats = async (req: Request, res: Response) => {
           byStatus: queryByStatus,
           guestCount: guestQueryCount,
           registeredCount: registeredQueryCount,
+          // Semantic groupings
+          pendingCount: queryByStatus['pending'] || 0,
+          undergoingCount,
+          closedCount,
+          completedCount: queryByStatus['completed'] || 0,
           ratio: {
-            guest: guestRatio,       // percentage
+            guest: guestRatio,
             registered: registeredRatio,
           },
+          timeline: queryTimeline, // [{ _id: '2025-07-01', count: 3 }, ...]
         },
         users: {
           total: totalUserCount,
@@ -99,4 +136,3 @@ export const getDashboardStats = async (req: Request, res: Response) => {
     return res.status(500).json({ success: false, message: 'Server error' });
   }
 };
-

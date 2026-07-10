@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import bcrypt from 'bcrypt';
 import { User } from '../models/user.model';
 import { generateTokens } from '../utils/generateToken';
+import { sendOtpEmail } from '../utils/email';
 
 export const signin = async (req: Request, res: Response) => {
   try {
@@ -35,9 +36,22 @@ export const signin = async (req: Request, res: Response) => {
 
     // check if user is verified
     if (!user.isVerified) {
+      // Auto-generate & send a fresh OTP so user can verify immediately
+      const otp = Math.floor(100000 + Math.random() * 900000).toString();
+      user.otp = otp;
+      user.otpExpires = new Date(Date.now() + 15 * 60 * 1000); // 15 min
+      await user.save();
+
+      // Fire email in background — don't block the response
+      sendOtpEmail(user.email, user.userName, otp).catch((err) =>
+        console.error('Failed to send verification OTP on sign-in:', err)
+      );
+
       return res.status(400).json({
         success: false,
-        message: 'Please verify your email before signing in.',
+        requiresVerification: true,
+        email: user.email,
+        message: 'Please verify your email before signing in. A new OTP has been sent to your inbox.',
       });
     }
 

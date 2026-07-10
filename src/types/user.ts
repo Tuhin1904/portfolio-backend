@@ -15,4 +15,6 @@ export interface IUser extends Document {
   otpExpires?: Date;
   resetPasswordOtp?: string;
   resetPasswordOtpExpires?: Date;
+  isOnline?: boolean;
+  lastSeen?: Date;
 }

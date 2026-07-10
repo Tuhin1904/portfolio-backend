@@ -4,6 +4,7 @@ import { Project } from '../models/project.model';
 import { User } from '../models/user.model';
 import { sendPushNotification, storeNotificationInFirestore } from '../utils/firebase';
 import { sendQueryStatusEmail } from '../utils/email';
+import { getIo } from '../utils/socket';
 
 const defaultMilestones = [
   { title: 'Requirement Discussion', completed: false },
@@ -217,6 +218,17 @@ export const updateQueryStatus = async (req: Request, res: Response) => {
     const oldStatus = query.status;
     query.status = status;
     await query.save();
+
+    // If cancelled → broadcast chat_disabled via socket immediately
+    if (status === 'cancelled' && oldStatus !== 'cancelled') {
+      const ioInstance = getIo();
+      if (ioInstance) {
+        ioInstance.to(query._id.toString()).emit('chat_disabled', {
+          queryId: query._id.toString(),
+          reason: 'This project enquiry has been cancelled. The chat is now read-only.',
+        });
+      }
+    }
 
     // Trigger notification if status changes
     if (oldStatus !== status) {

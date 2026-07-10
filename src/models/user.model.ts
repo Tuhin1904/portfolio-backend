@@ -55,6 +55,14 @@ const userSchema = new mongoose.Schema<IUser>(
     resetPasswordOtpExpires: {
       type: Date,
     },
+    isOnline: {
+      type: Boolean,
+      default: false,
+    },
+    lastSeen: {
+      type: Date,
+      default: null,
+    },
   },
   { timestamps: true },
 );
