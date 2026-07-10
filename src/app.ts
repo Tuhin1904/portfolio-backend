@@ -8,7 +8,7 @@ dotenv.config();
 
 const app = express();
 
-const allowedOrigins = ['http://localhost:3000', 'https://tuhindev.me'];
+const allowedOrigins = ['http://localhost:3000', 'https://tuhindev.me', 'https://www.tuhindev.me'];
 
 app.use(
   cors({

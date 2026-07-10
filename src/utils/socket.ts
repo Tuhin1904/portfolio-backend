@@ -28,7 +28,7 @@ const setUserOffline = async (userId: string) => {
 export const initSocket = (server: HttpServer) => {
   io = new Server(server, {
     cors: {
-      origin: ['http://localhost:3000', 'https://tuhindev.me'],
+      origin: ['http://localhost:3000', 'https://tuhindev.me', 'https://www.tuhindev.me'],
       credentials: true,
     },
   });
