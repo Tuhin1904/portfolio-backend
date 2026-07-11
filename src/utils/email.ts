@@ -1,4 +1,5 @@
 import nodemailer from 'nodemailer';
+import { Resend } from 'resend';
 
 const createTransporter = () => {
   if (process.env.SMTP_HOST) {
@@ -24,15 +25,45 @@ const createTransporter = () => {
 
 const transporter = createTransporter();
 
+interface SendEmailParams {
+  to: string;
+  subject: string;
+  html: string;
+}
+
+const sendEmail = async ({ to, subject, html }: SendEmailParams) => {
+  if (process.env.RESEND_API_KEY) {
+    const resend = new Resend(process.env.RESEND_API_KEY);
+    const from = process.env.EMAIL_FROM || 'onboarding@resend.dev';
+    const result = await resend.emails.send({
+      from,
+      to,
+      subject,
+      html,
+    });
+    if (result.error) {
+      throw new Error(`Resend email delivery failed: ${JSON.stringify(result.error)}`);
+    }
+    return result.data;
+  } else {
+    const info = await transporter.sendMail({
+      from: `"My Portfolio" <${process.env.EMAIL_USER}>`,
+      to,
+      subject,
+      html,
+    });
+    return info;
+  }
+};
+
 export const sendOtpEmail = async (toEmail: string, userName: string, otp: string) => {
-  if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
+  if (!process.env.RESEND_API_KEY && (!process.env.EMAIL_USER || !process.env.EMAIL_PASS)) {
     console.warn(`[MOCK EMAIL] Email credentials not defined. Printing OTP code for ${toEmail} (${userName}) to console: ${otp}`);
     return { id: 'mock-no-credentials', mock: true };
   }
 
   try {
-    const info = await transporter.sendMail({
-      from: `"My Portfolio" <${process.env.EMAIL_USER}>`,
+    const info = await sendEmail({
       to: toEmail,
       subject: 'Verify your email - My Portfolio',
       html: `
@@ -68,20 +99,19 @@ export const sendOtpEmail = async (toEmail: string, userName: string, otp: strin
     });
     return info;
   } catch (error) {
-    console.error('Failed to send OTP email via Nodemailer:', error);
+    console.error('Failed to send OTP email:', error);
     throw error;
   }
 };
 
 export const sendResetPasswordEmail = async (toEmail: string, userName: string, otp: string) => {
-  if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
+  if (!process.env.RESEND_API_KEY && (!process.env.EMAIL_USER || !process.env.EMAIL_PASS)) {
     console.warn(`[MOCK EMAIL] Email credentials not defined. Printing Reset OTP code for ${toEmail} (${userName}) to console: ${otp}`);
     return { id: 'mock-no-credentials', mock: true };
   }
 
   try {
-    const info = await transporter.sendMail({
-      from: `"My Portfolio" <${process.env.EMAIL_USER}>`,
+    const info = await sendEmail({
       to: toEmail,
       subject: 'Reset your password - My Portfolio',
       html: `
@@ -117,20 +147,19 @@ export const sendResetPasswordEmail = async (toEmail: string, userName: string, 
     });
     return info;
   } catch (error) {
-    console.error('Failed to send Reset Password email via Nodemailer:', error);
+    console.error('Failed to send Reset Password email:', error);
     throw error;
   }
 };
 
 export const sendWelcomeEmail = async (toEmail: string, userName: string) => {
-  if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
+  if (!process.env.RESEND_API_KEY && (!process.env.EMAIL_USER || !process.env.EMAIL_PASS)) {
     console.warn(`[MOCK EMAIL] Email credentials not defined. Welcome email to ${toEmail} (${userName}) skipped.`);
     return { id: 'mock-no-credentials', mock: true };
   }
 
   try {
-    const info = await transporter.sendMail({
-      from: `"My Portfolio" <${process.env.EMAIL_USER}>`,
+    const info = await sendEmail({
       to: toEmail,
       subject: 'Welcome message from tuhindev.me',
       html: `
@@ -171,7 +200,7 @@ export const sendWelcomeEmail = async (toEmail: string, userName: string) => {
     });
     return info;
   } catch (error) {
-    console.error('Failed to send Welcome email via Nodemailer:', error);
+    console.error('Failed to send Welcome email:', error);
     throw error;
   }
 };
@@ -183,14 +212,13 @@ export const sendQueryStatusEmail = async (
   newStatus: string,
   oldStatus: string
 ) => {
-  if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
+  if (!process.env.RESEND_API_KEY && (!process.env.EMAIL_USER || !process.env.EMAIL_PASS)) {
     console.warn(`[MOCK EMAIL] Email credentials not defined. Skipping status update email to ${toEmail}.`);
     return { id: 'mock-no-credentials', mock: true };
   }
 
   try {
-    const info = await transporter.sendMail({
-      from: `"My Portfolio" <${process.env.EMAIL_USER}>`,
+    const info = await sendEmail({
       to: toEmail,
       subject: `Project Inquiry Status Update - ${workType}`,
       html: `
@@ -238,7 +266,7 @@ export const sendQueryStatusEmail = async (
     });
     return info;
   } catch (error) {
-    console.error('Failed to send status update email via Nodemailer:', error);
+    console.error('Failed to send status update email:', error);
     throw error;
   }
 };

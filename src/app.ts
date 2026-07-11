@@ -8,6 +8,8 @@ dotenv.config();
 
 const app = express();
 
+app.set('trust proxy', 1);
+
 const allowedOrigins = ['http://localhost:3000', 'https://tuhindev.me', 'https://www.tuhindev.me'];
 
 app.use(
