@@ -1,7 +1,9 @@
 import { Request, Response } from 'express';
+import mongoose from 'mongoose';
 import geoip from 'geoip-lite';
 import { UrlShortener } from '../models/urlShortener.model';
 import { User } from '../models/user.model';
+
 import {
   generateRandomCode,
   isValidUrl,
@@ -281,6 +283,15 @@ export const getAllShortUrls = async (req: Request, res: Response) => {
     const idsParam = (req.query.ids as string || '').trim();
     const emailParam = (req.query.email as string || req.query.userEmail as string || '').trim().toLowerCase();
 
+    // Helper to safely parse Mongoose ObjectIds
+    const parseValidObjectIds = (str: string): string[] => {
+      if (!str) return [];
+      return str
+        .split(',')
+        .map((s) => s.trim())
+        .filter((s) => mongoose.Types.ObjectId.isValid(s));
+    };
+
     // Access Scoping Rules:
     // 1. Admin (userRole === 1): Can view ALL short URLs across the database.
     // 2. Logged in / Specified User: Filter by userId or creatorEmail.
@@ -290,8 +301,10 @@ export const getAllShortUrls = async (req: Request, res: Response) => {
       if (emailParam) {
         filter.$or = [{ creatorEmail: emailParam }];
       } else if (idsParam) {
-        const idList = idsParam.split(',').map((s) => s.trim()).filter(Boolean);
-        filter._id = { $in: idList };
+        const idList = parseValidObjectIds(idsParam);
+        if (idList.length > 0) {
+          filter._id = { $in: idList };
+        }
       }
     } else if (user) {
       // Authenticated user
@@ -310,13 +323,24 @@ export const getAllShortUrls = async (req: Request, res: Response) => {
       ];
     } else {
       // Unauthenticated Guest user without email — scope to local browser IDs
-      if (idsParam) {
-        const idList = idsParam.split(',').map((s) => s.trim()).filter(Boolean);
-        filter._id = { $in: idList };
+      const validIds = parseValidObjectIds(idsParam);
+      if (validIds.length > 0) {
+        filter._id = { $in: validIds };
       } else {
-        filter._id = { $in: [] };
+        // No valid IDs supplied by guest -> return empty result cleanly
+        return res.status(200).json({
+          success: true,
+          data: [],
+          pagination: {
+            page,
+            pageSize,
+            totalCount: 0,
+            totalPages: 0,
+          },
+        });
       }
     }
+
 
 
     if (isActiveFilter !== undefined && isActiveFilter !== '') {
