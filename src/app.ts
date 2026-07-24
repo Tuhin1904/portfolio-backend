@@ -3,6 +3,7 @@ import dotenv from 'dotenv';
 import routes from './routes';
 import cors from 'cors';
 import { apiLimiter } from './utils/rateLimiter';
+import { redirectShortUrl } from './controllers/urlShortener.controller';
 
 dotenv.config();
 
@@ -31,6 +32,10 @@ app.use(
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Top-level fast short URL redirect route
+app.get('/s/:shortCode', redirectShortUrl);
+
 app.use('/api', apiLimiter, routes);
 
 export default app;
+

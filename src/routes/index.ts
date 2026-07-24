@@ -5,6 +5,7 @@ import pingRoute from './ping';
 import fileUpload from './fileUpload/fileUpload.route';
 import dashboardRoutes from './dashboard';
 import reviewRoutes from './reviews';
+import urlShortenerRoutes from './urlShortener/urlShortener.route';
 
 const router = Router();
 
@@ -15,6 +16,8 @@ router.use('/users', userRoutes);
 router.use('/file', fileUpload);
 router.use('/dashboard', dashboardRoutes);
 router.use('/reviews', reviewRoutes);
+router.use('/url-shortener', urlShortenerRoutes);
 
 export default router;
+
 
