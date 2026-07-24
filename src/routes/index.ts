@@ -6,6 +6,7 @@ import fileUpload from './fileUpload/fileUpload.route';
 import dashboardRoutes from './dashboard';
 import reviewRoutes from './reviews';
 import urlShortenerRoutes from './urlShortener/urlShortener.route';
+import siteAnalyticsRoutes from './analytics/siteAnalytics.route';
 
 const router = Router();
 
@@ -17,7 +18,9 @@ router.use('/file', fileUpload);
 router.use('/dashboard', dashboardRoutes);
 router.use('/reviews', reviewRoutes);
 router.use('/url-shortener', urlShortenerRoutes);
+router.use('/analytics', siteAnalyticsRoutes);
 
 export default router;
+
 
 

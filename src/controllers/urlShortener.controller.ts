@@ -1,11 +1,15 @@
 import { Request, Response } from 'express';
+import geoip from 'geoip-lite';
 import { UrlShortener } from '../models/urlShortener.model';
+import { User } from '../models/user.model';
 import {
   generateRandomCode,
   isValidUrl,
   isReservedWord,
   isValidCustomCode,
 } from '../utils/shortCodeGenerator';
+
+
 
 const getBaseDomain = (req: Request): string => {
   if (process.env.SHORT_URL_BASE_DOMAIN) {
@@ -19,8 +23,23 @@ const getBaseDomain = (req: Request): string => {
 // POST /api/url-shortener
 export const createShortUrl = async (req: Request, res: Response) => {
   try {
-    const { originalUrl, customCode, title, expiresAt } = req.body;
-    const userId = (req as any).user?.userId || null;
+    const { originalUrl, customCode, title, expiresAt, email, userEmail } = req.body;
+    let userId = (req as any).user?.userId || null;
+    let creatorEmail = (email || userEmail || '').trim().toLowerCase();
+
+    // If logged in via JWT token, fetch user email if not supplied in body
+    if (userId) {
+      const userDoc = await User.findById(userId).select('email');
+      if (userDoc && userDoc.email) {
+        creatorEmail = userDoc.email.toLowerCase();
+      }
+    } else if (creatorEmail) {
+      // If email provided without token, attempt user lookup to link createdBy
+      const userDoc = await User.findOne({ email: creatorEmail });
+      if (userDoc) {
+        userId = userDoc._id;
+      }
+    }
 
     // ── Validate originalUrl ───────────────────────────────────────────
     if (!originalUrl || typeof originalUrl !== 'string') {
@@ -112,8 +131,10 @@ export const createShortUrl = async (req: Request, res: Response) => {
       shortCode: finalShortCode,
       title: title?.trim() || '',
       createdBy: userId,
+      creatorEmail,
       expiresAt: parsedExpiry,
     });
+
 
     const baseDomain = getBaseDomain(req);
     const shortUrl = `${baseDomain}/s/${urlDoc.shortCode}`;
@@ -176,6 +197,44 @@ export const redirectShortUrl = async (req: Request, res: Response) => {
       : forwardedHeader || req.socket.remoteAddress || '';
     const ip = rawIp.split(',')[0].trim().slice(0, 100);
 
+    let location = 'Unknown';
+    let country = '';
+    let city = '';
+
+    const isLocalIp = !ip || ip === '::1' || ip === '127.0.0.1' || ip.startsWith('192.168.') || ip.startsWith('10.');
+
+    if (!isLocalIp) {
+      const geo = geoip.lookup(ip);
+      if (geo) {
+        city = geo.city || '';
+        country = geo.country || '';
+        if (city && country) location = `${city}, ${country}`;
+        else if (country) location = country;
+      }
+    }
+
+    // Fallback for local testing or missing city data
+    if (location === 'Unknown' || isLocalIp) {
+      try {
+        const queryTarget = isLocalIp ? '' : ip;
+        const geoRes = await fetch(`http://ip-api.com/json/${queryTarget}`, { signal: AbortSignal.timeout(2000) });
+        if (geoRes.ok) {
+          const geoData: any = await geoRes.json();
+          if (geoData && geoData.status === 'success') {
+            city = geoData.city || city;
+            country = geoData.countryCode || geoData.country || country;
+            if (city && country) {
+              location = `${city}, ${country}`;
+            } else if (country) {
+              location = country;
+            }
+          }
+        }
+      } catch (e) {
+        if (isLocalIp) location = 'Localhost (Dev)';
+      }
+    }
+
 
     UrlShortener.updateOne(
       { _id: urlDoc._id },
@@ -183,12 +242,13 @@ export const redirectShortUrl = async (req: Request, res: Response) => {
         $inc: { clicks: 1 },
         $push: {
           analytics: {
-            $each: [{ timestamp: new Date(), referrer, userAgent, ip }],
+            $each: [{ timestamp: new Date(), referrer, userAgent, ip, location, country, city }],
             $slice: -100, // Keep last 100 clicks
           },
         },
       },
     ).catch((err) => console.error('Failed to record click analytics:', err));
+
 
     // If client specified json response requested
     if (req.query.json === 'true') {
@@ -218,10 +278,46 @@ export const getAllShortUrls = async (req: Request, res: Response) => {
     const filter: any = {};
 
     const user = (req as any).user;
-    // If not admin, restrict to links created by this user
-    if (user && user.userRole !== 1) {
-      filter.createdBy = user.userId;
+    const idsParam = (req.query.ids as string || '').trim();
+    const emailParam = (req.query.email as string || req.query.userEmail as string || '').trim().toLowerCase();
+
+    // Access Scoping Rules:
+    // 1. Admin (userRole === 1): Can view ALL short URLs across the database.
+    // 2. Logged in / Specified User: Filter by userId or creatorEmail.
+    // 3. Guest User: Filter strictly by their browser session localStorage IDs.
+    if (user && user.userRole === 1) {
+      // Admin — view all by default, or filter if specific email/ids provided
+      if (emailParam) {
+        filter.$or = [{ creatorEmail: emailParam }];
+      } else if (idsParam) {
+        const idList = idsParam.split(',').map((s) => s.trim()).filter(Boolean);
+        filter._id = { $in: idList };
+      }
+    } else if (user) {
+      // Authenticated user
+      const userDoc = await User.findById(user.userId).select('email');
+      const userEmailStr = userDoc?.email?.toLowerCase() || emailParam;
+      filter.$or = [
+        { createdBy: user.userId },
+        ...(userEmailStr ? [{ creatorEmail: userEmailStr }] : []),
+      ];
+    } else if (emailParam) {
+      // Guest with email specified in request
+      const foundUser = await User.findOne({ email: emailParam });
+      filter.$or = [
+        { creatorEmail: emailParam },
+        ...(foundUser ? [{ createdBy: foundUser._id }] : []),
+      ];
+    } else {
+      // Unauthenticated Guest user without email — scope to local browser IDs
+      if (idsParam) {
+        const idList = idsParam.split(',').map((s) => s.trim()).filter(Boolean);
+        filter._id = { $in: idList };
+      } else {
+        filter._id = { $in: [] };
+      }
     }
+
 
     if (isActiveFilter !== undefined && isActiveFilter !== '') {
       filter.isActive = isActiveFilter === 'true';
@@ -234,6 +330,7 @@ export const getAllShortUrls = async (req: Request, res: Response) => {
         { originalUrl: { $regex: queryStr, $options: 'i' } },
       ];
     }
+
 
     const [urls, totalCount] = await Promise.all([
       UrlShortener.find(filter)

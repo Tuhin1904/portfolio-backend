@@ -7,9 +7,13 @@ const clickAnalyticsSchema = new Schema(
     referrer: { type: String, default: '' },
     userAgent: { type: String, default: '' },
     ip: { type: String, default: '' },
+    location: { type: String, default: 'Unknown' },
+    country: { type: String, default: '' },
+    city: { type: String, default: '' },
   },
   { _id: false },
 );
+
 
 const urlShortenerSchema = new Schema<IUrlShortener>(
   {
@@ -35,6 +39,14 @@ const urlShortenerSchema = new Schema<IUrlShortener>(
       ref: 'User',
       default: null,
     },
+    creatorEmail: {
+      type: String,
+      default: '',
+      trim: true,
+      lowercase: true,
+      index: true,
+    },
+
     clicks: {
       type: Number,
       default: 0,

@@ -5,6 +5,9 @@ export interface IClickAnalytics {
   referrer?: string;
   userAgent?: string;
   ip?: string;
+  location?: string;
+  country?: string;
+  city?: string;
 }
 
 export interface IUrlShortener extends Document {
@@ -12,7 +15,9 @@ export interface IUrlShortener extends Document {
   shortCode: string;
   title?: string;
   createdBy?: Types.ObjectId;
+  creatorEmail?: string;
   clicks: number;
+
   isActive: boolean;
   expiresAt?: Date;
   analytics: IClickAnalytics[];
